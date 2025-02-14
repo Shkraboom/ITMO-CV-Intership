@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLO11n Object Detection</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-webgl"></script>
+    <script defer src="test.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: #f4f4f4;
+        }
+        video, canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: none;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+        }
+        #sourceSelection {
+            position: relative;
+            z-index: 10;
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        input[type="file"] {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="sourceSelection">
+        <button id="useWebcam">Use Webcam</button>
+        <button id="useVideo">Select Video</button>
+        <input type="file" id="videoInput" accept="video/*">
+    </div>
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas"></canvas>
+    <script>
+        async function startInference() {
+            const model = await tf.loadGraphModel('yolo11n_web_model/model.json');
+            detect(model);
+        }
+
+        document.getElementById("useWebcam").addEventListener("click", async () => {
+            const video = document.getElementById("video");
+            const canvas = document.getElementById("canvas");
+            document.getElementById("sourceSelection").style.display = "none";
+            video.style.display = "block";
+            canvas.style.display = "block";
+            
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            
+            video.onloadedmetadata = () => {
+                video.width = video.videoWidth;
+                video.height = video.videoHeight;
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                startInference();
+            };
+        });
+        
+        document.getElementById("useVideo").addEventListener("click", () => {
+            document.getElementById("videoInput").click();
+        });
+        
+        document.getElementById("videoInput").addEventListener("change", (event) => {
+            const file = event.target.files[0];
+            if (file) {
+                const video = document.getElementById("video");
+                const canvas = document.getElementById("canvas");
+                document.getElementById("sourceSelection").style.display = "none";
+                video.style.display = "block";
+                canvas.style.display = "block";
+                
+                const objectURL = URL.createObjectURL(file);
+                video.src = objectURL;
+                video.loop = true;
+                video.muted = true;
+                video.autoplay = true;
+                
+                video.onloadeddata = () => {
+                    video.width = video.videoWidth;
+                    video.height = video.videoHeight;
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    startInference();
+                };
+            }
+        });
+    </script>
+</body>
+</html>
